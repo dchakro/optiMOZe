@@ -97,9 +97,9 @@ do
 	elif [ "$1" == "--auto-remove-quietly" ]; then
 		echo -e "Autoremove: ${RED}ON${NC}"
 	elif [ "$1" == "-rm" ]; then
-		echo -e "Autoremove: ${ORANGE}ON${NC}"
+		echo -e "Autoremove: ${ORANGE}Ask${NC}"
 	elif [ "$1" == "--auto-remove" ]; then
-		echo -e "Autoremove: ${ORANGE}ON${NC}"
+		echo -e "Autoremove: ${ORANGE}Ask${NC}"
 	fi
 
 	printf 'Moz-optimize:
