@@ -27,7 +27,7 @@ To install these dependencies on other platforms follow instructions in their re
 
 Just navigate to the folder where you want to encode images using mozjpeg and run `optiMOZe` (optiMOZe must be in your system path, otherwise use full path to optiMOZe).
 
-![How to run?](assets/1.jpg)
+![How to run?](assets/how_to.jpg)
 
 + The first line shows (reminds you) the status of autoremove. 
   + OFF = original file backed up as `moz.bak.<original.filename.png>`.
@@ -43,5 +43,5 @@ Just navigate to the folder where you want to encode images using mozjpeg and ru
 
 I took a screenshot while writing this readme and was able to compress it with optiMOZe down to 13% of its original size.
 
-![Compressed screenshot](assets/2.jpg)
+![Compressed screenshot](assets/compression.jpg)
 
