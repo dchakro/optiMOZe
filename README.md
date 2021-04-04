@@ -4,6 +4,8 @@
 
 I got the idea to write `optiMOZe`, which is a shell script to automatically compress random JPEG and PNGs lying around my mac (like screenshots, image exports for powerpoint etc.) after I tried [MOZjpeg](https://github.com/mozilla/mozjpeg) on google's [squoosh app](https://squoosh.app) to compress some images for [my blog](https://blog.dchakro.com). I was blown away by the compression ratio and looking at the images side by side. Try `optiMOZe` for yourself, I'll let the images on your computer do the talking.
 
+P.S. the name optiMOZe is a play on the word optimise: *optimise -> optimize -> optimoze*.
+
 ### Dependencies
 
 `optiMOZe` is basically a wrapper around two very well built pieces of software: [imagemagick](https://github.com/ImageMagick/ImageMagick) & [MOZjpeg](https://github.com/mozilla/mozjpeg). You can get these on a mac from homebrew:
@@ -25,7 +27,7 @@ To install these dependencies on other platforms follow instructions in their re
 
 Just navigate to the folder where you want to encode images using mozjpeg and run `optiMOZe` (optiMOZe must be in your system path, otherwise use full path to optiMOZe).
 
-![How to run?](assets/Screen Shot 2021-04-02 at 7.00.18 p.m..jpg)
+![How to run?](assets/1.jpg)
 
 + The first line shows (reminds you) the status of autoremove. 
   + OFF = original file backed up as `moz.bak.<original.filename.png>`.
@@ -41,5 +43,5 @@ Just navigate to the folder where you want to encode images using mozjpeg and ru
 
 I took a screenshot while writing this readme and was able to compress it with optiMOZe down to 13% of its original size.
 
-![Compressed screenshot](assets/Screen Shot 2021-04-02 at 6.57.42 p.m..jpg)
+![Compressed screenshot](assets/2.jpg)
 
