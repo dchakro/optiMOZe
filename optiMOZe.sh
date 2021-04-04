@@ -19,6 +19,28 @@ NC='\033[0m'
 
 ## Function definitions:
 
+HELP()
+{
+printf 'optiMOZe - allows you to use encode your PNG and JPEG files with MOZjpeg: an improved JPEG encoder.
+By default optiMOZe saves the originals as "moz.bak.<original name>" in the same folder.
+This behavior can be changed by using the following options to remove the orignal files.
+
+Usage:
+   optiMOZe [options]
+
+OPTIONS:     
+    -h   --help                 Show help (this text)
+    -rm  --auto-remove          Remove original files (ask user to confirm)
+    -rmq --auto-remove-quietly  Remove the original files without asking for 
+                                confirmation
+
+Copyright 2021, Deepankar Chakroborty, www.dchakro.com
+Report issues: https://github.com/dchakro/optiMOZe/issues
+';
+  
+}
+
+
 optimizePNG()
 {
 	declare -a pngFiles
@@ -100,6 +122,12 @@ do
 		echo -e "Autoremove: ${ORANGE}Ask${NC}"
 	elif [ "$1" == "--auto-remove" ]; then
 		echo -e "Autoremove: ${ORANGE}Ask${NC}"
+	elif [ "$1" == "--help" ]; then
+		HELP
+		exit 0
+	elif [ "$1" == "-h" ]; then
+		HELP
+		exit 0
 	fi
 
 	printf 'Moz-optimize:
