@@ -6,24 +6,42 @@ I got the idea to write `optiMOZe`, which is a shell script to automatically com
 
 P.S. the name optiMOZe is a play on the word optimise: *optimise -> optimize -> optimoze*.
 
-### Dependencies
+### Dependencies:
 
-`optiMOZe` is basically a wrapper around two very well built pieces of software: [imagemagick](https://github.com/ImageMagick/ImageMagick) & [MOZjpeg](https://github.com/mozilla/mozjpeg). You can get these on a mac from homebrew:
-
-```sh
-brew install imagemagick mozjpeg
-
-# (see caveat #1) symlink mozjpeg
-# Replace "4.0.3" in the path below with the vesion number of mozjpeg on your system.
-ln -s /usr/local/Cellar/mozjpeg/4.0.3/bin/cjpeg /usr/local/bin/mozcjpeg
-ln -s /usr/local/Cellar/mozjpeg/4.0.3/bin/jpegtran /usr/local/bin/mozjpegtran
-```
+`optiMOZe` is basically a wrapper around two very well built pieces of software: [imagemagick](https://github.com/ImageMagick/ImageMagick) & [MOZjpeg](https://github.com/mozilla/mozjpeg). You can get these on a mac from homebrew.
 
 **Tip**: `brew` doesn't maintain a log of its activity so if you want to keep a log, check out my simple tool [`brewlog`](https://github.com/dchakro/brewlog), which allows you to run a `brew` command of your choice while writing the output to a local log file.
 
 To install these dependencies on other platforms follow instructions in their repos or official websites.
 
 ### How to use:
+
+Prepare your machine to run optiMOZe by installing dependencies:
+
+```sh
+# Note: If you do not have homebrew you can get it from https://brew.sh
+
+# Install dependencies
+brew install imagemagick mozjpeg
+
+# Symlink mozjpeg (see point #1 in caveats listed below)
+# Replace "4.0.3" in the path below with the vesion number of mozjpeg on your system.
+ln -s /usr/local/Cellar/mozjpeg/4.0.3/bin/cjpeg /usr/local/bin/mozcjpeg
+ln -s /usr/local/Cellar/mozjpeg/4.0.3/bin/jpegtran /usr/local/bin/mozjpegtran
+```
+
+Now you're ready to get optiMOZe running on your machine. Here's how to do it:
+
+```sh
+# Get optiMOZe source
+curl -OJL 'https://github.com/dchakro/optiMOZe/raw/main/optiMOZe.sh'
+
+# Make optiMOZe executable
+chmod +x optiMOZe.sh
+
+# Symlink optiMOZe
+ln -s $(pwd)/optiMOZe.sh /usr/local/bin/optiMOZe
+```
 
 Just navigate to the folder where you want to encode images using mozjpeg and run `optiMOZe` (optiMOZe must be in your system path, otherwise use full path to optiMOZe).
 
@@ -39,9 +57,10 @@ Just navigate to the folder where you want to encode images using mozjpeg and ru
 
 1. On a mac `MOZjpeg` is installed via [`homebrew`]((https://brew.sh)) but not symlinked to prevent conflicts with the standard `libjpeg`. So it is recommended to symlink cjpeg from MOZjpeg with a different name. I use `mozcjpeg` on my machines, which is the name used in the shell script. If you use a different name, just use Find-Replace or [sd](https://github.com/chmln/sd) on the shell script.
 
-### Example of compression
+### Example of compression:
 
 I took a screenshot while writing this readme and was able to compress it with optiMOZe down to 13% of its original size.
 
 ![Compressed screenshot](assets/compression.jpg)
 
+### Tips
