@@ -42,10 +42,11 @@ Report issues: https://github.com/dchakro/optiMOZe/issues
 
 
 optimizePNG()
-{
+{ 
+	command -v mozcjpeg >/dev/null 2>&1 || { echo "mozcjpeg not found. Aborting..." && exit 1 }
 	declare -a pngFiles
 	# pngFiles=$(fd png) or pngFiles=`fd png` were not working as they were adding the files as a block of text.
-	if ls *.png &> /dev/null ; then
+	if ls | egrep -i "$png" &> /dev/null ; then
 		for file in *.png
 		do
 	    	pngFiles=("${pngFiles[@]}" "$file")
@@ -69,8 +70,9 @@ optimizePNG()
 
 optimizeJPEG()
 {
+	command -v mozcjpeg >/dev/null 2>&1 || { echo "mozcjpeg not found. Aborting..." && exit 1 }
 	declare -a jpgFiles
-	if ls *.jpg &> /dev/null ; then
+	if ls | egrep -i "$jpg|jpeg" &> /dev/null ; then
 		for file in *.jpg
 		do
 	    	jpgFiles=("${jpgFiles[@]}" "$file")
