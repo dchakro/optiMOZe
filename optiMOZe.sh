@@ -40,13 +40,18 @@ Report issues: https://github.com/dchakro/optiMOZe/issues
   
 }
 
+ABORT()
+{
+	echo "mozcjpeg not found. Aborting..."
+	exit 1
+}
 
 optimizePNG()
 { 
-	command -v mozcjpeg >/dev/null 2>&1 || { echo "mozcjpeg not found. Aborting..." && exit 1 }
+	command -v mozcjpeg >/dev/null 2>&1 || ABORT
 	declare -a pngFiles
 	# pngFiles=$(fd png) or pngFiles=`fd png` were not working as they were adding the files as a block of text.
-	if ls | egrep -i "$png" &> /dev/null ; then
+	if ls | grep -Ei "png$" &> /dev/null ; then
 		for file in *.png
 		do
 	    	pngFiles=("${pngFiles[@]}" "$file")
@@ -70,9 +75,9 @@ optimizePNG()
 
 optimizeJPEG()
 {
-	command -v mozcjpeg >/dev/null 2>&1 || { echo "mozcjpeg not found. Aborting..." && exit 1 }
+	command -v mozcjpeg >/dev/null 2>&1 || ABORT
 	declare -a jpgFiles
-	if ls | egrep -i "$jpg|jpeg" &> /dev/null ; then
+	if ls | grep -Ei "jpe?g$" &> /dev/null ; then
 		for file in *.jpg
 		do
 	    	jpgFiles=("${jpgFiles[@]}" "$file")
