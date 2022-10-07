@@ -77,15 +77,35 @@ optimizeJPEG()
 {
 	command -v mozcjpeg >/dev/null 2>&1 || ABORT
 	declare -a jpgFiles
-	if ls | grep -Ei "jpe?g$" &> /dev/null ; then
+	declare -i counter
+	counter=0
+	if ls | grep -Ei "jpg$" &> /dev/null ; then
 		for file in *.jpg
 		do
 	    	jpgFiles=("${jpgFiles[@]}" "$file")
 		done
 		
 		# Processing the files
-		declare -i counter
-		counter=0
+		for item in "${jpgFiles[@]}"
+		do 
+			mv "${item}" "moz.bak_${item}"
+			mozcjpeg -quality 75 -quant-table 3 -progressive "moz.bak_${item}" >| "${item}"
+			counter=($counter+1)
+		done
+		echo "${counter} JPG files optimized!"
+	else
+		echo "No JPG files found in $(PWD)"
+	fi
+	jpgFiles=()
+	counter=0
+	if ls | grep -Ei "jpeg$" &> /dev/null ; then
+		for file in *.jpeg
+		do
+	    	jpgFiles=("${jpgFiles[@]}" "$file")
+		done
+		
+		# Processing the files
+		
 		for item in "${jpgFiles[@]}"
 		do 
 			mv "${item}" "moz.bak_${item}"
