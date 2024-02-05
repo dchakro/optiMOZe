@@ -52,7 +52,7 @@ optimizePNG()
 	declare -a pngFiles
 	# pngFiles=$(fd png) or pngFiles=`fd png` were not working as they were adding the files as a block of text.
 	if ls | grep -Ei "png$" &> /dev/null ; then
-		for file in *.png
+		for file in *.png *.PNG
 		do
 	    	pngFiles=("${pngFiles[@]}" "$file")
 		done
@@ -80,7 +80,7 @@ optimizeJPEG()
 	declare -i counter
 	counter=0
 	if ls | grep -Ei "jpg$" &> /dev/null ; then
-		for file in *.jpg
+		for file in *.jpg *.jpeg *.JPEG *.JPG
 		do
 	    	jpgFiles=("${jpgFiles[@]}" "$file")
 		done
