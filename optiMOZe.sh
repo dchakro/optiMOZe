@@ -73,6 +73,42 @@ optimizePNG()
 	fi
 }
 
+optimizeTIFF()
+{ 
+	command -v mozcjpeg >/dev/null 2>&1 || ABORT
+	declare -a tifFiles
+	# tifFiles=$(fd png) or tifFiles=`fd png` were not working as they were adding the files as a block of text.
+	if ls | grep -Ei "tif[f]*$" &> /dev/null ; then
+		# Loop through all files in current directory
+		for file in * 
+		do
+		    # Convert filename to lowercase
+		    lowercase_file=$(echo "$file" | tr '[:upper:]' '[:lower:]')
+
+		    # Check if filename ends with .tif or .tiff
+		    if [[ "$lowercase_file" == *.tif ]] || [[ "$lowercase_file" == *.tiff ]]
+		    then
+		        tifFiles=("${tifFiles[@]}" "$file")
+		    fi
+		done
+		
+		# Processing the files
+		declare -i counter
+		counter=0
+		for item in "${tifFiles[@]}"
+		do 
+			# outname=$(echo "${item}" | sd "tif[f]*" "jpg")
+			# mozcjpeg -quality 75 -quant-table 3 -progressive "${item}" >| "${outname}"
+			convert -quality 85 "${item}" "${file%.*}.jpg"
+			mv "${item}" "moz.bak_${item}"
+			counter=($counter+1)
+		done
+		echo "${counter} TIFF files optimized!"
+	else
+		echo "No TIFF files found in $(PWD)"
+	fi
+}
+
 optimizeJPEG()
 {
 	command -v mozcjpeg >/dev/null 2>&1 || ABORT
@@ -160,8 +196,9 @@ do
 	printf 'Moz-optimize:
 		1) PNGs only
 		2) JPEGs only
-		3) Both PNG & JPEGs
-		4) Exit
+		3) TIFFs only
+		4) All files
+		5) Exit
 		  
 		Enter: ';
 	read var;
@@ -179,7 +216,7 @@ do
 			fi
 	        exit 0
 	        ;;
-	    2) 
+	   2) 
 	        optimizeJPEG
 	        if [ "$1" == "-rmq" ]; then
 				removeMozBackupsQuietly
@@ -192,8 +229,22 @@ do
 			fi
 	        exit 0
 	        ;;
-	    3)
+	   3) 
+		        optimizeTIFF
+		        if [ "$1" == "-rmq" ]; then
+					removeMozBackupsQuietly
+				elif [ "$1" == "--auto-remove-quietly" ]; then
+					removeMozBackupsQuietly
+				elif [ "$1" == "-rm" ]; then
+					removeMozBackups
+				elif [ "$1" == "--auto-remove" ]; then
+					removeMozBackups
+				fi
+		        exit 0
+		        ;;
+		4)
 	        optimizeJPEG
+			optimizeTIFF
 	        optimizePNG
 	        if [ "$1" == "-rmq" ]; then
 				removeMozBackupsQuietly
@@ -206,7 +257,7 @@ do
 			fi
 	        exit 0
 	        ;;
-	    4)
+	    5)
 	        echo "Bye!"
 	        exit 0
 	        ;;
