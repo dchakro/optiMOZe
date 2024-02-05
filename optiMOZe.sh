@@ -116,7 +116,7 @@ optimizeJPEG()
 	declare -i counter
 	counter=0
 	if ls | grep -Ei "jpg$" &> /dev/null ; then
-		for file in *.jpg *.jpeg *.JPEG *.JPG
+		for file in *.jpg *.JPG
 		do
 	    	jpgFiles=("${jpgFiles[@]}" "$file")
 		done
@@ -135,7 +135,7 @@ optimizeJPEG()
 	jpgFiles=()
 	counter=0
 	if ls | grep -Ei "jpeg$" &> /dev/null ; then
-		for file in *.jpeg
+		for file in *.jpeg *.JPEG
 		do
 	    	jpgFiles=("${jpgFiles[@]}" "$file")
 		done
