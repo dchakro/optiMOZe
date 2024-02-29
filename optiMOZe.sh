@@ -99,7 +99,7 @@ optimizeTIFF()
 		do 
 			# outname=$(echo "${item}" | sd "tif[f]*" "jpg")
 			# mozcjpeg -quality 75 -quant-table 3 -progressive "${item}" >| "${outname}"
-			convert -quality 85 "${item}" "${file%.*}.jpg"
+			convert -quality 85 "${item}" "${item%.*}.jpg"
 			mv "${item}" "moz.bak_${item}"
 			counter=($counter+1)
 		done
