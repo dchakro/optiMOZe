@@ -11,6 +11,9 @@
 # you really do not need the original files.
 ###########
 
+# Enable case-insensitive globbing
+shopt -s nocaseglob
+
 # Define colors
 RED='\033[91m'
 ORANGE='\033[95m'
@@ -42,7 +45,7 @@ Report issues: https://github.com/dchakro/optiMOZe/issues
 
 ABORT()
 {
-	echo "mozcjpeg not found. Aborting..."
+	echo "mozcjpeg or mogrify not found. Aborting..."
 	exit 1
 }
 
@@ -51,8 +54,8 @@ optimizePNG()
 	command -v mozcjpeg >/dev/null 2>&1 || ABORT
 	declare -a pngFiles
 	# pngFiles=$(fd png) or pngFiles=`fd png` were not working as they were adding the files as a block of text.
-	if ls | grep -Ei "png$" &> /dev/null ; then
-		for file in *.png *.PNG
+	if /bin/ls | grep -Ei "png$" &> /dev/null ; then
+		for file in *.png
 		do
 	    	pngFiles=("${pngFiles[@]}" "$file")
 		done
@@ -78,7 +81,7 @@ optimizeTIFF()
 	command -v mozcjpeg >/dev/null 2>&1 || ABORT
 	declare -a tifFiles
 	# tifFiles=$(fd png) or tifFiles=`fd png` were not working as they were adding the files as a block of text.
-	if ls | grep -Ei "tif[f]*$" &> /dev/null ; then
+	if /bin/ls | grep -Ei "tif[f]*$" &> /dev/null ; then
 		# Loop through all files in current directory
 		for file in * 
 		do
@@ -109,14 +112,59 @@ optimizeTIFF()
 	fi
 }
 
+mogrifyJPEG()
+{
+	command -v mogrify >/dev/null 2>&1 || ABORT
+	declare -a jpgFiles
+	declare -i counter
+	counter=0
+	if /bin/ls | grep -Ei "jpg$" &> /dev/null ; then
+		for file in *.jpg
+		do
+	    	jpgFiles=("${jpgFiles[@]}" "$file")
+		done
+		
+		# Processing the files
+		for item in "${jpgFiles[@]}"
+		do 
+			cp "${item}" "orig_${item}"
+			mogrify -quality 75 "${item}"
+			counter=($counter+1)
+		done
+		echo "${counter} JPG files optimized!"
+	else
+		echo "No JPG files found in $(PWD)"
+	fi
+	jpgFiles=()
+	counter=0
+	if /bin/ls | grep -Ei "jpeg$" &> /dev/null ; then
+		for file in *.jpeg
+		do
+	    	jpgFiles=("${jpgFiles[@]}" "$file")
+		done
+		
+		# Processing the files
+		
+		for item in "${jpgFiles[@]}"
+		do 
+			cp "${item}" "orig_${item}"
+			mogrify -quality 75 "${item}"
+			counter=($counter+1)
+		done
+		echo "${counter} JPEG files optimized!"
+	else
+		echo "No JPEG files found in $(PWD)"
+	fi
+}
+
 optimizeJPEG()
 {
 	command -v mozcjpeg >/dev/null 2>&1 || ABORT
 	declare -a jpgFiles
 	declare -i counter
 	counter=0
-	if ls | grep -Ei "jpg$" &> /dev/null ; then
-		for file in *.jpg *.JPG
+	if /bin/ls | grep -Ei "jpg$" &> /dev/null ; then
+		for file in *.jpg
 		do
 	    	jpgFiles=("${jpgFiles[@]}" "$file")
 		done
@@ -134,8 +182,8 @@ optimizeJPEG()
 	fi
 	jpgFiles=()
 	counter=0
-	if ls | grep -Ei "jpeg$" &> /dev/null ; then
-		for file in *.jpeg *.JPEG
+	if /bin/ls | grep -Ei "jpeg$" &> /dev/null ; then
+		for file in *.jpeg
 		do
 	    	jpgFiles=("${jpgFiles[@]}" "$file")
 		done
@@ -156,17 +204,17 @@ optimizeJPEG()
 
 removeMozBackups()
 {
-	# ls moz.bak_*
-	if ls moz.bak_* &> /dev/null ; then
+	# /bin/ls moz.bak_*
+	if /bin/ls moz.bak_* &> /dev/null ; then
 		rm -i moz.bak_*
 	fi
 }
 
 removeMozBackupsQuietly()
 {
-	if ls moz.bak_* &> /dev/null ; then
+	if /bin/ls moz.bak_* &> /dev/null ; then
 		echo "These files have been deleted:"
-		ls moz.bak_*
+		/bin/ls moz.bak_*
 		rm moz.bak_*
 	fi
 }
@@ -198,7 +246,8 @@ do
 		2) JPEGs only
 		3) TIFFs only
 		4) All files
-		5) Exit
+		5) mogrify JPEGs
+		6) Exit
 		  
 		Enter: ';
 	read var;
@@ -258,6 +307,10 @@ do
 	        exit 0
 	        ;;
 	    5)
+	        mogrifyJPEG
+	        exit 0
+	        ;;
+		6)
 	        echo "Bye!"
 	        exit 0
 	        ;;
