@@ -119,39 +119,30 @@ mogrifyJPEG()
 	declare -i counter
 	counter=0
 	if /bin/ls | grep -Ei "jpg$" &> /dev/null ; then
-		for file in *.jpg
-		do
-	    	jpgFiles=("${jpgFiles[@]}" "$file")
-		done
-		
-		# Processing the files
-		for item in "${jpgFiles[@]}"
-		do 
-			cp "${item}" "orig_${item}"
-			mogrify -quality 75 "${item}"
-			counter=($counter+1)
-		done
-		echo "${counter} JPG files optimized!"
+		mogrify -resize 70% *.jpg
 	else
 		echo "No JPG files found in $(PWD)"
 	fi
-	jpgFiles=()
-	counter=0
 	if /bin/ls | grep -Ei "jpeg$" &> /dev/null ; then
-		for file in *.jpeg
-		do
-	    	jpgFiles=("${jpgFiles[@]}" "$file")
-		done
-		
-		# Processing the files
-		
-		for item in "${jpgFiles[@]}"
-		do 
-			cp "${item}" "orig_${item}"
-			mogrify -quality 75 "${item}"
-			counter=($counter+1)
-		done
-		echo "${counter} JPEG files optimized!"
+		mogrify -resize 70% *.jpeg
+	else
+		echo "No JPEG files found in $(PWD)"
+	fi
+}
+
+mogrifyHEIC()
+{
+	command -v mogrify >/dev/null 2>&1 || ABORT
+	declare -a jpgFiles
+	declare -i counter
+	counter=0
+	if /bin/ls | grep -Ei "heic$" &> /dev/null ; then
+		mogrify -resize 70% *.heic
+	else
+		echo "No HEIC files found in $(PWD)"
+	fi
+	if /bin/ls | grep -Ei "HEIC$" &> /dev/null ; then
+		mogrify -resize 70% *.HEIC
 	else
 		echo "No JPEG files found in $(PWD)"
 	fi
@@ -202,6 +193,51 @@ optimizeJPEG()
 	fi
 }
 
+JPEG_to_HEIC()
+{
+	command -v magick >/dev/null 2>&1 || ABORT
+	declare -a jpgFiles
+	declare -i counter
+	counter=0
+	if /bin/ls | grep -Ei "jpg$" &> /dev/null ; then
+		for file in *.jpg
+		do
+	    	jpgFiles=("${jpgFiles[@]}" "$file")
+		done
+		
+		# Processing the files
+		for item in "${jpgFiles[@]}"
+		do 
+			mv "${item}" "moz.bak_${item}"
+			magick "moz.bak_${item}" "${item}.heic"
+			counter=($counter+1)
+		done
+		echo "${counter} JPG files optimized!"
+	else
+		echo "No JPG files found in $(PWD)"
+	fi
+	jpgFiles=()
+	counter=0
+	if /bin/ls | grep -Ei "jpeg$" &> /dev/null ; then
+		for file in *.jpeg
+		do
+	    	jpgFiles=("${jpgFiles[@]}" "$file")
+		done
+		
+		# Processing the files
+		
+		for item in "${jpgFiles[@]}"
+		do 
+			mv "${item}" "moz.bak_${item}"
+			magick "moz.bak_${item}" "${item}.heic"
+			counter=($counter+1)
+		done
+		echo "${counter} JPG files optimized!"
+	else
+		echo "No JPG files found in $(PWD)"
+	fi
+}
+
 removeMozBackups()
 {
 	# /bin/ls moz.bak_*
@@ -245,9 +281,11 @@ do
 		1) PNGs only
 		2) JPEGs only
 		3) TIFFs only
-		4) All files
-		5) mogrify JPEGs
-		6) Exit
+		4) Both PNG and JPG
+		5) HEIC 70% downsize (overwrites original)
+		6) Resize JPEGs (overwrites original)
+		7) Convert JPEGs to HEIC
+		8) Exit
 		  
 		Enter: ';
 	read var;
@@ -306,11 +344,28 @@ do
 			fi
 	        exit 0
 	        ;;
-	    5)
-	        mogrifyJPEG
+		5)
+	        mogrifyHEIC
 	        exit 0
 	        ;;
 		6)
+	        mogrifyJPEG
+	        exit 0
+	        ;;
+		7)
+			JPEG_to_HEIC
+	        if [ "$1" == "-rmq" ]; then
+				removeMozBackupsQuietly
+			elif [ "$1" == "--auto-remove-quietly" ]; then
+				removeMozBackupsQuietly
+			elif [ "$1" == "-rm" ]; then
+				removeMozBackups
+			elif [ "$1" == "--auto-remove" ]; then
+				removeMozBackups
+			fi
+			exit 0
+			;;
+		8)
 	        echo "Bye!"
 	        exit 0
 	        ;;
