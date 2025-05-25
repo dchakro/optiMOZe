@@ -119,33 +119,71 @@ mogrifyJPEG()
 	declare -i counter
 	counter=0
 	if /bin/ls | grep -Ei "jpg$" &> /dev/null ; then
-		mogrify -resize 70% *.jpg
+		mogrify -resize 85% *.jpg
 	else
 		echo "No JPG files found in $(PWD)"
 	fi
 	if /bin/ls | grep -Ei "jpeg$" &> /dev/null ; then
-		mogrify -resize 70% *.jpeg
+		mogrify -resize 85% *.jpeg
 	else
 		echo "No JPEG files found in $(PWD)"
 	fi
 }
 
-mogrifyHEIC()
+#mogrifyHEIC()
+#{
+#	command -v mogrify >/dev/null 2>&1 || ABORT
+#	declare -a jpgFiles
+#	declare -i counter
+#	counter=0
+#	if /bin/ls | grep -Ei "heic$" &> /dev/null ; then
+#		mogrify -resize 70% *.heic
+#	else
+#		echo "No HEIC files found in $(PWD)"
+#	fi
+#	if /bin/ls | grep -Ei "HEIC$" &> /dev/null ; then
+#		mogrify -resize 70% *.HEIC
+#	else
+#		echo "No JPEG files found in $(PWD)"
+#	fi
+#}
+
+mogrifyHEIC() # Written by Gemini 2.5 Flash
 {
-	command -v mogrify >/dev/null 2>&1 || ABORT
-	declare -a jpgFiles
-	declare -i counter
-	counter=0
-	if /bin/ls | grep -Ei "heic$" &> /dev/null ; then
-		mogrify -resize 70% *.heic
-	else
-		echo "No HEIC files found in $(PWD)"
-	fi
-	if /bin/ls | grep -Ei "HEIC$" &> /dev/null ; then
-		mogrify -resize 70% *.HEIC
-	else
-		echo "No JPEG files found in $(PWD)"
-	fi
+    # Check if mogrify and identify commands exist
+    command -v mogrify >/dev/null 2>&1 || { echo >&2 "Error: mogrify not found. Please install ImageMagick."; exit 1; }
+    command -v identify >/dev/null 2>&1 || { echo >&2 "Error: identify not found. Please install ImageMagick."; exit 1; }
+
+    local heic_files=()
+    # Find all HEIC files (case-insensitive) and store them in an array
+    while IFS= read -r -d $'\0'; do
+        heic_files+=("$REPLY")
+    done < <(find . -maxdepth 1 -iname "*.heic" -print0)
+
+    if [ ${#heic_files[@]} -eq 0 ]; then
+        echo "No HEIC files found in $(PWD)"
+        return 0
+    fi
+
+    echo "Checking and resizing HEIC files in $(PWD)..."
+
+    for heic_file in "${heic_files[@]}"; do
+        # Get image width and height using identify
+        # The format specifiers %w for width and %h for height are used
+        read -r width height < <(identify -format "%w %h" "$heic_file" 2>/dev/null)
+
+        # Check if identify successfully retrieved dimensions and if resolution is >= 2000 in either dimension
+        if [[ -n "$width" && -n "$height" ]]; then
+            if (( width >= 2000 || height >= 2000 )); then
+                echo "Downsizing '$heic_file' (${width}x${height})..."
+                mogrify -resize 85% "$heic_file"
+            else
+                echo "Skipping '$heic_file' (${width}x${height}) - resolution is less than 2000px."
+            fi
+        else
+            echo "Could not get dimensions for '$heic_file' using identify. Skipping."
+        fi
+    done
 }
 
 optimizeJPEG()
@@ -238,6 +276,31 @@ JPEG_to_HEIC()
 	fi
 }
 
+PNG_to_HEIC()
+{
+	command -v magick >/dev/null 2>&1 || ABORT
+	declare -a jpgFiles
+	declare -i counter
+	counter=0
+	if /bin/ls | grep -Ei "png$" &> /dev/null ; then
+		for file in *.png
+		do
+	    	jpgFiles=("${jpgFiles[@]}" "$file")
+		done
+		
+		# Processing the files
+		for item in "${jpgFiles[@]}"
+		do 
+			mv "${item}" "moz.bak_${item}"
+			magick "moz.bak_${item}" "${item}.heic"
+			counter=($counter+1)
+		done
+		echo "${counter} JPG files optimized!"
+	else
+		echo "No PNG files found in $(PWD)"
+	fi
+}
+
 removeMozBackups()
 {
 	# /bin/ls moz.bak_*
@@ -282,10 +345,11 @@ do
 		2) JPEGs only
 		3) TIFFs only
 		4) Both PNG and JPG
-		5) HEIC 70% downsize (overwrites original)
+		5) HEIC 70pct downsize (overwrites original)
 		6) Resize JPEGs (overwrites original)
 		7) Convert JPEGs to HEIC
-		8) Exit
+		8) Convert PNGs to HEIC
+		9) Exit
 		  
 		Enter: ';
 	read var;
@@ -366,6 +430,19 @@ do
 			exit 0
 			;;
 		8)
+			PNG_to_HEIC
+	        if [ "$1" == "-rmq" ]; then
+				removeMozBackupsQuietly
+			elif [ "$1" == "--auto-remove-quietly" ]; then
+				removeMozBackupsQuietly
+			elif [ "$1" == "-rm" ]; then
+				removeMozBackups
+			elif [ "$1" == "--auto-remove" ]; then
+				removeMozBackups
+			fi
+			exit 0
+			;;
+		9)
 	        echo "Bye!"
 	        exit 0
 	        ;;
