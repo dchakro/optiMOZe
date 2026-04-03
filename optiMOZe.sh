@@ -100,20 +100,35 @@ mogrifyJPEG() {
     echo "${#files[@]} JPEG files resized."
 }
 
+
+get_dimensions() {
+    local f="$1"
+    if command -v mdls >/dev/null 2>&1; then
+        width=$(mdls -name kMDItemPixelWidth -raw "$f" 2>/dev/null | tr -d ' \n')
+    	height=$(mdls -name kMDItemPixelHeight -raw "$f" 2>/dev/null | tr -d ' \n')
+    elif command -v exiftool >/dev/null 2>&1; then
+        read -r width height < <(exiftool -s3 -ImageWidth -ImageHeight "$f" 2>/dev/null)
+    else
+        read -r width height < <(identify -format "%w %h" "$f" 2>/dev/null)
+    fi
+    echo "$width $height"
+}
+
 mogrifyHEIC() {
+	trap 'echo "Aborted."; trap - INT; return 1' INT
     command -v mogrify >/dev/null 2>&1 || { echo >&2 "Error: mogrify not found."; exit 1; }
-    command -v identify >/dev/null 2>&1 || { echo >&2 "Error: identify not found."; exit 1; }
 
     local files=(*.heic)
     [[ ${#files[@]} -eq 0 ]] && { echo "No HEIC files found in $PWD"; return; }
 
     echo "Checking and resizing HEIC files in $PWD..."
     for f in "${files[@]}"; do
-        read -r width height < <(identify -format "%w %h" "$f" 2>/dev/null)
+        read -r width height < <(get_dimensions "$f")
         if [[ -n "$width" && -n "$height" ]]; then
             if (( width >= 2000 || height >= 2000 )); then
                 echo "Downsizing '$f' (${width}x${height})..."
-                mogrify -resize 85% "$f"
+				sips -Z $((width > height ? width * 85 / 100 : height * 85 / 100)) "$f" --out "$f"
+                #mogrify -resize 85% "$f"
             else
                 echo "Skipping '$f' (${width}x${height}) — under 2000px."
             fi
@@ -121,6 +136,7 @@ mogrifyHEIC() {
             echo "Could not get dimensions for '$f'. Skipping."
         fi
     done
+	trap - INT
 }
 
 JPEG_to_HEIC() {
