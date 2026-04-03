@@ -123,26 +123,36 @@ mogrifyHEIC() {
     done
 }
 
-to_HEIC() {
-    # Generic converter: accepts glob pattern, e.g. "*.jpg *.jpeg" or "*.png"
-    local -a files=()
-    for pattern in "$@"; do
-        # expand each pattern (nocaseglob active)
-        local expanded=($pattern)
-        files+=("${expanded[@]}")
-    done
-    [[ ${#files[@]} -eq 0 ]] && { echo "No matching files found in $PWD"; return; }
-
+JPEG_to_HEIC() {
     command -v magick >/dev/null 2>&1 || { echo "magick not found. Aborting..."; exit 1; }
+    local files=(*.jpg *.jpeg)
+    [[ ${#files[@]} -eq 0 ]] && { echo "No JPG/JPEG files found in $PWD"; return; }
 
     local counter=0
     for item in "${files[@]}"; do
-        local outname="${item%.*}.heic"   # fix: strip extension cleanly
+        local outname="${item%.*}.heic"          # fix: was "${item}.heic"
         mv "${item}" "moz.bak_${item}"
-        magick "moz.bak_${item}" "${outname}"
+        magick "moz.bak_${item}" "${outname}" &  # parallel: mozcjpeg is single-threaded
         ((counter++))
     done
-    echo "${counter} files converted to HEIC."
+    wait
+    echo "${counter} JPEG files converted to HEIC."
+}
+
+PNG_to_HEIC() {
+    command -v magick >/dev/null 2>&1 || { echo "magick not found. Aborting..."; exit 1; }
+    local files=(*.png)
+    [[ ${#files[@]} -eq 0 ]] && { echo "No PNG files found in $PWD"; return; }
+
+    local counter=0
+    for item in "${files[@]}"; do
+        local outname="${item%.*}.heic"          # fix: was "${item}.heic"
+        mv "${item}" "moz.bak_${item}"
+        magick "moz.bak_${item}" "${outname}" &
+        ((counter++))
+    done
+    wait
+    echo "${counter} PNG files converted to HEIC."
 }
 
 removeMozBackups() {
@@ -189,8 +199,8 @@ while true; do
         4) optimizeJPEG; optimizeTIFF; optimizePNG; handle_autoremove "$1"; exit 0 ;;
         5) mogrifyHEIC;                          exit 0 ;;
         6) mogrifyJPEG;                          exit 0 ;;
-        7) to_HEIC "*.jpg" "*.jpeg";             handle_autoremove "$1"; exit 0 ;;
-        8) to_HEIC "*.png";                      handle_autoremove "$1"; exit 0 ;;
+        7) JPEG_to_HEIC;             			 handle_autoremove "$1"; exit 0 ;;
+        8) PNG_to_HEIC;                      	 handle_autoremove "$1"; exit 0 ;;
         9) echo "Bye!"; exit 0 ;;
         *) echo -e "\n${RED}Wrong input.${NC} Valid range [${GREEN}1-9${NC}].\n"; sleep 0.5 ;;
     esac
