@@ -101,6 +101,28 @@ mogrifyJPEG() {
 }
 
 
+# Copy EXIF/XMP/GPS and filesystem dates from source to converted output.
+# ImageMagick and sips do not reliably preserve metadata in HEIC; Photos uses these tags for import date.
+require_exiftool() {
+    command -v exiftool >/dev/null 2>&1 || {
+        echo "exiftool not found. Required to preserve capture dates and other metadata."
+        echo "Install with: brew install exiftool"
+        exit 1
+    }
+}
+
+copy_image_metadata() {
+    local src="$1" dst="$2"
+    shift 2
+    command -v exiftool >/dev/null 2>&1 || return 1
+    exiftool -overwrite_original -tagsFromFile "$src" -all:all "$dst" >/dev/null 2>&1 || return 1
+    local sidecar
+    for sidecar in "$@"; do
+        [[ -f "$sidecar" ]] && exiftool -overwrite_original -tagsFromFile "$sidecar" -all:all "$dst" >/dev/null 2>&1
+    done
+    touch -r "$src" "$dst" 2>/dev/null
+}
+
 get_dimensions() {
     local f="$1"
     if command -v mdls >/dev/null 2>&1; then
@@ -116,7 +138,8 @@ get_dimensions() {
 
 mogrifyHEIC() {
 	trap 'echo "Aborted."; trap - INT; return 1' INT
-    command -v mogrify >/dev/null 2>&1 || { echo >&2 "Error: mogrify not found."; exit 1; }
+    require_exiftool
+    command -v sips >/dev/null 2>&1 || { echo >&2 "Error: sips not found."; exit 1; }
 
     local files=(*.heic)
     [[ ${#files[@]} -eq 0 ]] && { echo "No HEIC files found in $PWD"; return; }
@@ -127,8 +150,13 @@ mogrifyHEIC() {
         if [[ -n "$width" && -n "$height" ]]; then
             if (( width >= 2000 || height >= 2000 )); then
                 echo "Downsizing '$f' (${width}x${height})..."
-				sips -Z $((width > height ? width * 85 / 100 : height * 85 / 100)) "$f" --out "$f"
-                #mogrify -resize 85% "$f"
+                local tmp="${f%.*}.optimoze.tmp.heic"
+                sips -Z $((width > height ? width * 85 / 100 : height * 85 / 100)) "$f" --out "$tmp" &&
+                copy_image_metadata "$f" "$tmp" &&
+                mv "$tmp" "$f" || {
+                    rm -f "$tmp"
+                    echo "Failed to downsize '$f' (metadata may be unchanged)."
+                }
             else
                 echo "Skipping '$f' (${width}x${height}) — under 2000px."
             fi
@@ -141,14 +169,22 @@ mogrifyHEIC() {
 
 JPEG_to_HEIC() {
     command -v magick >/dev/null 2>&1 || { echo "magick not found. Aborting..."; exit 1; }
+    require_exiftool
     local files=(*.jpg *.jpeg)
     [[ ${#files[@]} -eq 0 ]] && { echo "No JPG/JPEG files found in $PWD"; return; }
 
     local counter=0
     for item in "${files[@]}"; do
         local outname="${item%.*}.heic"          # fix: was "${item}.heic"
+        local base="${item%.*}"
+        local xmp=""
+        [[ -f "${base}.xmp" ]] && xmp="${base}.xmp"
+        [[ -f "${base}.XMP" ]] && xmp="${base}.XMP"
         mv "${item}" "moz.bak_${item}"
-        magick "moz.bak_${item}" "${outname}" &  # parallel: mozcjpeg is single-threaded
+        (
+            magick "moz.bak_${item}" "${outname}" &&
+            copy_image_metadata "moz.bak_${item}" "${outname}" ${xmp:+"$xmp"}
+        ) &
         ((counter++))
     done
     wait
@@ -157,14 +193,22 @@ JPEG_to_HEIC() {
 
 PNG_to_HEIC() {
     command -v magick >/dev/null 2>&1 || { echo "magick not found. Aborting..."; exit 1; }
+    require_exiftool
     local files=(*.png)
     [[ ${#files[@]} -eq 0 ]] && { echo "No PNG files found in $PWD"; return; }
 
     local counter=0
     for item in "${files[@]}"; do
         local outname="${item%.*}.heic"          # fix: was "${item}.heic"
+        local base="${item%.*}"
+        local xmp=""
+        [[ -f "${base}.xmp" ]] && xmp="${base}.xmp"
+        [[ -f "${base}.XMP" ]] && xmp="${base}.XMP"
         mv "${item}" "moz.bak_${item}"
-        magick "moz.bak_${item}" "${outname}" &
+        (
+            magick "moz.bak_${item}" "${outname}" &&
+            copy_image_metadata "moz.bak_${item}" "${outname}" ${xmp:+"$xmp"}
+        ) &
         ((counter++))
     done
     wait

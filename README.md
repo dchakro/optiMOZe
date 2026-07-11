@@ -8,7 +8,7 @@ P.S. the name optiMOZe is a play on the word optimise: *optimise -> optimize -> 
 
 ### Dependencies:
 
-`optiMOZe` is basically a wrapper around two very well built pieces of software: [imagemagick](https://github.com/ImageMagick/ImageMagick) & [MOZjpeg](https://github.com/mozilla/mozjpeg). You can get these on a mac from homebrew.
+`optiMOZe` is basically a wrapper around well-built tools: [ImageMagick](https://github.com/ImageMagick/ImageMagick), [MOZjpeg](https://github.com/mozilla/mozjpeg), and [ExifTool](https://exiftool.org) (for preserving photo dates and metadata in HEIC workflows). You can get these on a Mac from Homebrew.
 
 **Tip**: `brew` doesn't maintain a log of its activity so if you want to keep a log, check out my simple tool [`brewlog`](https://github.com/dchakro/brewlog), which allows you to run a `brew` command of your choice while writing the output to a local log file.
 
@@ -22,7 +22,7 @@ Prepare your machine to run optiMOZe by installing dependencies:
 # Note: If you do not have homebrew you can get it from https://brew.sh
 
 # Install dependencies
-brew install imagemagick mozjpeg
+brew install imagemagick mozjpeg exiftool
 
 # Symlink mozjpeg (see point #1 in caveats listed below)
 # Replace "4.0.3" in the path below with the vesion number of mozjpeg on your system.
@@ -52,6 +52,7 @@ Just navigate to the folder where you want to encode images using mozjpeg and ru
   + ON = original file will be removed automatically.
   + Ask = optiMOZe will ask you for confirmation for removing each file. Allows granular control.
 + Run `optiMOZe --help` to display the CLI args to use to control autoremove status.
++ Options 5, 7, and 8 (HEIC downsize / JPEG→HEIC / PNG→HEIC) use ExifTool to copy capture dates, GPS, and camera metadata into the output. Without `exiftool`, those operations abort rather than silently stripping metadata.
 
 ### Caveats:
 
