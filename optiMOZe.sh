@@ -30,6 +30,11 @@ OPTIONS:
     -rm  --auto-remove          Remove originals (with confirmation)
     -rmq --auto-remove-quietly  Remove originals silently
 
+ENVIRONMENT:
+    OPTIMOZE_HEIC_ENCODER       HEIC backend: auto (default), sips, magick
+                                auto uses sips on macOS, magick elsewhere
+    OPTIMOZE_MAX_JOBS             Max parallel HEIC jobs (default: min(ncpu, 4))
+
 Copyright 2021, Deepankar Chakroborty, www.dchakro.com
 Issues: https://github.com/dchakro/optiMOZe/issues
 '
@@ -123,6 +128,66 @@ copy_image_metadata() {
     touch -r "$src" "$dst" 2>/dev/null
 }
 
+# HEIC backend: sips (macOS Media Engine) or magick (libheif/x265, cross-platform).
+# OPTIMOZE_HEIC_ENCODER=auto|sips|magick
+get_heic_encoder() {
+    case "${OPTIMOZE_HEIC_ENCODER:-auto}" in
+        sips)
+            command -v sips >/dev/null 2>&1 || { echo "sips not found. Aborting..."; return 1; }
+            echo sips
+            ;;
+        magick)
+            command -v magick >/dev/null 2>&1 || { echo "magick not found. Aborting..."; return 1; }
+            echo magick
+            ;;
+        auto)
+            if [[ "$(uname -s)" == Darwin ]] && command -v sips >/dev/null 2>&1; then
+                echo sips
+            elif command -v magick >/dev/null 2>&1; then
+                echo magick
+            else
+                echo "No HEIC encoder found (need sips on macOS or magick). Aborting..."
+                return 1
+            fi
+            ;;
+        *)
+            echo "Unknown OPTIMOZE_HEIC_ENCODER='${OPTIMOZE_HEIC_ENCODER}'. Use auto, sips, or magick."
+            return 1
+            ;;
+    esac
+}
+
+convert_to_heic() {
+    local encoder="$1" src="$2" dst="$3"
+    case "$encoder" in
+        sips)   sips -s format heic "$src" --out "$dst" ;;
+        magick) magick "$src" "$dst" ;;
+        *)      return 1 ;;
+    esac
+}
+
+# Cap parallel HEIC jobs so large folders cannot spawn thousands of processes.
+# Default: min(ncpu, 4) for both sips and magick (benchmarked safe on Apple Silicon).
+# Override with OPTIMOZE_MAX_JOBS (e.g. OPTIMOZE_MAX_JOBS=2 optiMOZe).
+get_max_jobs() {
+    if [[ -n "${OPTIMOZE_MAX_JOBS:-}" ]]; then
+        echo "$OPTIMOZE_MAX_JOBS"
+        return
+    fi
+    local n
+    n=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 2)
+    (( n > 4 )) && n=4
+    echo "$n"
+}
+
+wait_for_job_slot() {
+    local max="$1"
+    while (( ${#job_pids[@]} >= max )); do
+        wait "${job_pids[0]}" 2>/dev/null
+        job_pids=("${job_pids[@]:1}")
+    done
+}
+
 get_dimensions() {
     local f="$1"
     if command -v mdls >/dev/null 2>&1; then
@@ -167,52 +232,46 @@ mogrifyHEIC() {
 	trap - INT
 }
 
-JPEG_to_HEIC() {
-    command -v magick >/dev/null 2>&1 || { echo "magick not found. Aborting..."; exit 1; }
-    require_exiftool
-    local files=(*.jpg *.jpeg)
-    [[ ${#files[@]} -eq 0 ]] && { echo "No JPG/JPEG files found in $PWD"; return; }
+images_to_HEIC() {
+    local label="$1"
+    shift
+    local files=("$@")
+    [[ ${#files[@]} -eq 0 ]] && { echo "No ${label} files found in $PWD"; return; }
 
-    local counter=0
+    require_exiftool
+    local encoder max_jobs job_pids=() counter=0
+    encoder=$(get_heic_encoder) || { echo "$encoder"; exit 1; }
+    max_jobs=$(get_max_jobs)
+    echo "Converting ${#files[@]} ${label} files via ${encoder} (max ${max_jobs} at a time)..."
+    [[ "$encoder" == sips ]] && echo "Note: sips uses Apple Media Engine; output may be larger than magick/x265."
+
     for item in "${files[@]}"; do
-        local outname="${item%.*}.heic"          # fix: was "${item}.heic"
+        wait_for_job_slot "$max_jobs"
+        local outname="${item%.*}.heic"
         local base="${item%.*}"
         local xmp=""
         [[ -f "${base}.xmp" ]] && xmp="${base}.xmp"
         [[ -f "${base}.XMP" ]] && xmp="${base}.XMP"
         mv "${item}" "moz.bak_${item}"
         (
-            magick "moz.bak_${item}" "${outname}" &&
+            convert_to_heic "$encoder" "moz.bak_${item}" "${outname}" &&
             copy_image_metadata "moz.bak_${item}" "${outname}" ${xmp:+"$xmp"}
         ) &
+        job_pids+=($!)
         ((counter++))
     done
-    wait
-    echo "${counter} JPEG files converted to HEIC."
+    for pid in "${job_pids[@]}"; do wait "$pid" 2>/dev/null; done
+    echo "${counter} ${label} files converted to HEIC."
+}
+
+JPEG_to_HEIC() {
+    local files=(*.jpg *.jpeg)
+    images_to_HEIC "JPEG" "${files[@]}"
 }
 
 PNG_to_HEIC() {
-    command -v magick >/dev/null 2>&1 || { echo "magick not found. Aborting..."; exit 1; }
-    require_exiftool
     local files=(*.png)
-    [[ ${#files[@]} -eq 0 ]] && { echo "No PNG files found in $PWD"; return; }
-
-    local counter=0
-    for item in "${files[@]}"; do
-        local outname="${item%.*}.heic"          # fix: was "${item}.heic"
-        local base="${item%.*}"
-        local xmp=""
-        [[ -f "${base}.xmp" ]] && xmp="${base}.xmp"
-        [[ -f "${base}.XMP" ]] && xmp="${base}.XMP"
-        mv "${item}" "moz.bak_${item}"
-        (
-            magick "moz.bak_${item}" "${outname}" &&
-            copy_image_metadata "moz.bak_${item}" "${outname}" ${xmp:+"$xmp"}
-        ) &
-        ((counter++))
-    done
-    wait
-    echo "${counter} PNG files converted to HEIC."
+    images_to_HEIC "PNG" "${files[@]}"
 }
 
 removeMozBackups() {
