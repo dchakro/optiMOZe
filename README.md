@@ -118,6 +118,10 @@ Mixed set: 3× 1600×1200 and 6× 4000×3000 images, each duplicated 10× (90 fi
 
 On the same 9-file benchmark folder: `sips` ~0.3 s vs `magick` ~1.8 s; output ~1.1 MB vs ~0.8 MB.
 
+### Future / TODO
+
+- **Option 6 (JPEG resize): use `sips` on macOS.** Option 5 (HEIC downsize) already uses `sips -Z` via Apple's Media Engine / Core Graphics. Option 6 still uses ImageMagick `mogrify -resize 85%`, which is CPU-only on Homebrew builds (OpenCL disabled). A future improvement: mirror the HEIC path — `sips` resize to a temp file, restore metadata with ExifTool, apply the same `OPTIMOZE_MAX_JOBS` parallel cap, and keep `mogrify` as a non-macOS fallback. If the end goal is HEIC, consider resizing during conversion (one `sips` pass) instead of resize-then-convert.
+
 ### Caveats:
 
 1. On a mac `MOZjpeg` is installed via [`homebrew`]((https://brew.sh)) but not symlinked to prevent conflicts with the standard `libjpeg`. So it is recommended to symlink cjpeg from MOZjpeg with a different name. I use `mozcjpeg` on my machines, which is the name used in the shell script. If you use a different name, just use Find-Replace or [sd](https://github.com/chmln/sd) on the shell script.
